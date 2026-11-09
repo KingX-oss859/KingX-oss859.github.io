@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Эпюр №1 с подсказками</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=PT+Sans:ital,wght@0,400;0,700;1,400&family=PT+Sans+Narrow:wght@700&family=PT+Mono&family=Fira+Sans+Condensed:ital,wght@1,400&display=swap">
+<style>
+/* Layout: drafting sheet on the left, a "margin notes" panel on the right; stacks on phones. */
+:root{
+  --bg:#eceee9; --sheet:#fbfbf7; --grid:rgba(40,70,60,.07);
+  --ink:#1c2220; --thin:#55605b; --muted:#6b746f; --line:#d5d9d2;
+  --accent:#1d5bd6; --accent-soft:rgba(29,91,214,.12); --rel:#c66a12; --rel-soft:rgba(198,106,18,.12);
+  --panel:#f7f8f4;
+  --f-body:"PT Sans", "Segoe UI", Arial, sans-serif;
+  --f-head:"PT Sans Narrow", "Arial Narrow", "PT Sans", sans-serif;
+  --f-mono:"PT Mono", ui-monospace, Consolas, monospace;
+  --f-draw:"Fira Sans Condensed", "Arial Narrow", "PT Sans", sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#121618; --sheet:#1a1f22; --grid:rgba(160,200,190,.06);
+  --ink:#e4e7e1; --thin:#8f9a95; --muted:#9aa49f; --line:#2c3337;
+  --accent:#6f9dff; --accent-soft:rgba(111,157,255,.16); --rel:#f0a457; --rel-soft:rgba(240,164,87,.15);
+  --panel:#171c1e; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#121618; --sheet:#1a1f22; --grid:rgba(160,200,190,.06);
+  --ink:#e4e7e1; --thin:#8f9a95; --muted:#9aa49f; --line:#2c3337;
+  --accent:#6f9dff; --accent-soft:rgba(111,157,255,.16); --rel:#f0a457; --rel-soft:rgba(240,164,87,.15);
+  --panel:#171c1e; color-scheme:dark}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.5}
+.wrap{max-width:1360px;margin:0 auto;padding-block:20px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:18px}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px}
+.ttl{display:flex;flex-direction:column;gap:2px;min-width:0}
+.ttl h1{font-family:var(--f-head);font-size:clamp(26px,4vw,36px);line-height:1.05;margin:0;letter-spacing:.01em;text-wrap:balance}
+.ttl .sub{color:var(--muted);font-size:14px}
+.code{font-family:var(--f-mono);font-size:13px;color:var(--muted);border:1px solid var(--line);padding:3px 8px;border-radius:3px;white-space:nowrap}
+nav.tabs{display:flex;flex-wrap:wrap;gap:6px}
+nav.tabs button{font:inherit;font-size:15px;padding:7px 14px;border:1px solid var(--line);background:var(--sheet);color:var(--ink);border-radius:999px;cursor:pointer}
+nav.tabs button[aria-pressed="true"]{background:var(--ink);color:var(--sheet);border-color:var(--ink)}
+nav.tabs button:focus-visible,.btn:focus-visible,.chip:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.main{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:18px;align-items:start}
+@media (max-width:920px){.main{grid-template-columns:minmax(0,1fr)}}
+.board{background:var(--sheet);border:1px solid var(--line);border-radius:4px;position:relative;overflow:hidden;
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:12px 12px}
+.board svg{display:block;width:100%;height:auto;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+.board .tip{position:absolute;left:12px;bottom:10px;font-size:13px;color:var(--muted);pointer-events:none}
+/* drawing */
+svg .ln{fill:none;stroke:var(--ink);stroke-linecap:round;vector-effect:non-scaling-stroke}
+svg .ln.main{stroke-width:2.2}
+svg .ln.thin{stroke:var(--thin);stroke-width:.9}
+svg .ln.hidden{stroke-width:1.3;stroke-dasharray:7 4}
+svg .hit{fill:none;stroke:transparent;stroke-width:14;vector-effect:non-scaling-stroke;pointer-events:stroke}
+svg .lb{font-family:var(--f-draw);font-style:italic;fill:var(--ink)}
+svg .lbh{fill:transparent;pointer-events:all}
+svg .dot{fill:var(--ink)}
+svg .frame{fill:none;stroke:var(--thin);stroke-width:1;vector-effect:non-scaling-stroke}
+svg g.e{cursor:pointer;transition:opacity .2s}
+svg.has-sel g.e{opacity:.28}
+svg.has-sel g.e.sel, svg.has-sel g.e.rel{opacity:1}
+svg g.e.hov .ln,svg g.e.sel .ln{stroke:var(--accent)}
+svg g.e.sel .ln.main{stroke-width:3}
+svg g.e.sel .ln.thin{stroke-width:1.8}
+svg g.e.sel .lb,svg g.e.hov .lb{fill:var(--accent)}
+svg g.e.sel .dot{fill:var(--accent)}
+svg g.e.rel .ln{stroke:var(--rel)}
+svg g.e.rel .lb{fill:var(--rel)}
+svg g.e.now .ln{stroke:var(--accent)}
+svg g.e.now .ln.thin{stroke-width:1.6}
+svg g.e.now .lb{fill:var(--accent)}
+svg g.e.pend .ln{stroke:var(--thin);stroke-width:.9;stroke-dasharray:none}
+svg g.e.off{display:none}
+@media (prefers-reduced-motion:reduce){svg g.e{transition:none}}
+/* side panel */
+aside{display:flex;flex-direction:column;gap:14px;min-width:0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:16px 18px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.eyebrow{font-family:var(--f-head);text-transform:uppercase;letter-spacing:.08em;font-size:13px;color:var(--muted)}
+.card h2{font-family:var(--f-head);font-size:22px;line-height:1.15;margin:0;text-wrap:balance}
+.card .body p{margin:0 0 .6em}
+.card .body p:last-child{margin-bottom:0}
+.card .body b{font-weight:700}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font:inherit;font-size:13px;padding:3px 10px;border-radius:999px;border:1px solid var(--rel);color:var(--rel);background:var(--rel-soft);cursor:pointer}
+.steps{display:flex;align-items:center;gap:8px}
+.btn{font:inherit;font-size:15px;padding:7px 14px;border-radius:4px;border:1px solid var(--line);background:var(--sheet);color:var(--ink);cursor:pointer}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn:disabled{opacity:.4;cursor:default}
+.stepno{font-family:var(--f-mono);font-size:14px;color:var(--muted);flex:1;text-align:center}
+.bar{height:4px;background:var(--line);border-radius:2px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent);transition:width .25s}
+.mode{display:flex;gap:6px;flex-wrap:wrap}
+.mode .btn[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.legend{display:grid;grid-template-columns:44px 1fr;gap:6px 10px;align-items:center;font-size:14px}
+.legend svg{width:44px;height:10px}
+.hint{color:var(--muted);font-size:14px}
+.empty{color:var(--muted)}
+/* glossary */
+section.gloss{display:flex;flex-direction:column;gap:12px}
+section.gloss h2{font-family:var(--f-head);font-size:24px;margin:0}
+.terms{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.term{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:12px 14px;min-width:0}
+.term dt{font-weight:700;margin-bottom:4px}
+.term dd{margin:0;color:var(--ink);font-size:15px}
+.kbd{font-family:var(--f-mono);font-size:12px;border:1px solid var(--line);border-radius:3px;padding:0 4px}
+</style>
+</head>
+<body>
+
+
+<div class="wrap">
+  <header>
+    <div class="ttl">
+      <h1>Эпюр №1 · вариант 25</h1>
+      <div class="sub">Начертательная геометрия · нажмите на любую линию, точку или букву</div>
+    </div>
+    <span class="code">ГН 01.01.01.025</span>
+  </header>
+
+  <nav class="tabs" aria-label="Что показать">
+    <button id="tab-sheet" data-view="sheet">Весь лист</button>
+    <button id="tab-t1" data-view="t1">1. Пересечение плоскостей</button>
+    <button id="tab-t2" data-view="t2">2. Расстояние до плоскости</button>
+    <button id="tab-t3" data-view="t3">3. Натуральная величина</button>
+  </nav>
+
+  <div class="main">
+    <div class="board">
+      <svg id="dw" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Эпюр №1"></svg>
+      <div class="tip" id="tip">Нажмите на элемент, чтобы увидеть объяснение</div>
+    </div>
+
+    <aside>
+      <div class="card" id="stepcard">
+        <div class="eyebrow" id="taskname">Задача</div>
+        <div class="mode" role="group" aria-label="Режим">
+          <button class="btn" id="m-step" aria-pressed="true">Пошагово</button>
+          <button class="btn" id="m-all" aria-pressed="false">Всё сразу</button>
+        </div>
+        <div class="bar"><i id="barfill" style="width:0"></i></div>
+        <div class="steps">
+          <button class="btn" id="prev" aria-label="Предыдущий шаг">← Назад</button>
+          <span class="stepno" id="stepno">1 / 1</span>
+          <button class="btn primary" id="next" aria-label="Следующий шаг">Далее →</button>
+        </div>
+        <h2 id="steptitle"></h2>
+        <div class="body" id="stepbody"></div>
+      </div>
+
+      <div class="card" id="infocard">
+        <div class="eyebrow">Что это</div>
+        <h2 id="infotitle" class="empty">Ничего не выбрано</h2>
+        <div class="body" id="infobody"><p class="hint">Нажмите на линию, точку или подпись на чертеже. Связанные элементы подсветятся оранжевым — по ним можно перейти дальше.</p></div>
+        <div class="chips" id="chips"></div>
+      </div>
+
+      <div class="card">
+        <div class="eyebrow">Типы линий</div>
+        <div class="legend">
+          <svg viewBox="0 0 44 10"><line x1="2" y1="5" x2="42" y2="5" stroke="currentColor" stroke-width="2.4"/></svg><span><b>Основная</b> — контуры и результаты</span>
+          <svg viewBox="0 0 44 10"><line x1="2" y1="5" x2="42" y2="5" stroke="currentColor" stroke-width=".9" opacity=".7"/></svg><span><b>Тонкая</b> — линии связи и построения</span>
+          <svg viewBox="0 0 44 10"><line x1="2" y1="5" x2="42" y2="5" stroke="currentColor" stroke-width="1.3" stroke-dasharray="7 4"/></svg><span><b>Штриховая</b> — невидимые участки</span>
+        </div>
+        <div class="hint">Клавиши: <span class="kbd">←</span> <span class="kbd">→</span> — шаги, <span class="kbd">Esc</span> — снять выделение.</div>
+      </div>
+    </aside>
+  </div>
+
+  <section class="gloss">
+    <h2>Словарик</h2>
+    <dl class="terms">
+      <div class="term"><dt>Проекция</dt><dd>«Тень» точки на плоскость при взгляде строго перпендикулярно. У каждой точки на эпюре две проекции: вид спереди и вид сверху.</dd></div>
+      <div class="term"><dt>Индексы ₁ и ₂</dt><dd>A₂ — фронтальная проекция (П₂, вид спереди, над осью). A₁ — горизонтальная (П₁, вид сверху, под осью).</dd></div>
+      <div class="term"><dt>Координаты x, y, z</dt><dd>x — влево от начала координат, y — глубина (откладывается вниз от оси на П₁), z — высота (вверх от оси на П₂).</dd></div>
+      <div class="term"><dt>Линия связи</dt><dd>Тонкая вертикальная линия между проекциями одной точки. Обе проекции всегда на одной вертикали — по ней «переносят» точки с вида на вид.</dd></div>
+      <div class="term"><dt>Проецирующая плоскость</dt><dd>Плоскость, перпендикулярная одной из плоскостей проекций. На ней она видна как прямая (след), поэтому с ней удобно строить: Σ, Δ, Γ на этом листе.</dd></div>
+      <div class="term"><dt>Горизонталь h и фронталь f</dt><dd>Прямые уровня в плоскости: у h постоянная высота z, у f — постоянная глубина y. Перпендикуляр к плоскости проецируется под 90° к h₁ и к f₂.</dd></div>
+      <div class="term"><dt>Конкурирующие точки</dt><dd>Две точки на разных объектах, совпавшие на проекции. Видна та, что ближе к наблюдателю: на П₂ — с большим y, на П₁ — с большим z.</dd></div>
+      <div class="term"><dt>Способ прямоугольного треугольника</dt><dd>Настоящая длина отрезка = гипотенуза, где один катет — проекция отрезка, а второй — разность координат концов (Δz или Δy).</dd></div>
+      <div class="term"><dt>Натуральная величина</dt><dd>Фигура без искажений, какой она есть в пространстве: настоящие длины, углы и площадь.</dd></div>
+    </dl>
+  </section>
+</div>
+
+<script>
+const DATA = {"el": [{"id": "t1-axis", "task": "t1", "step": 1, "title": "Ось x (ось проекций)", "body": "<p>Линия пересечения фронтальной плоскости проекций П₂ и горизонтальной П₁. Чертёж — это две плоскости, «развёрнутые» в одну.</p><p>Всё, что <b>выше</b> оси, — фронтальные проекции (вид спереди, индекс ₂). Всё, что <b>ниже</b>, — горизонтальные (вид сверху, индекс ₁).</p><p>Расстояние от оси до проекции ₂ — это высота точки z, до проекции ₁ — глубина y.</p>", "rel": []}, {"id": "t1-ABC", "task": "t1", "step": 1, "title": "Треугольник ABC", "body": "<p>Первая плоскость, заданная треугольником. Вершины: A(55; 50; 50), B(15; 25; 0), C(95; 0; 15).</p><p>Толстые линии — видимые стороны, штриховые — закрытые другим треугольником.</p>", "rel": ["t1-A", "t1-B", "t1-C"]}, {"id": "t1-DEF", "task": "t1", "step": 1, "title": "Треугольник DEF", "body": "<p>Вторая плоскость. Вершины: D(15; 15; 35), E(85; 35; 0), F(50; 0; 35).</p><p>Задача — найти, по какой линии треугольники пересекаются, и показать, какой из них где виден.</p>", "rel": ["t1-D", "t1-E", "t1-F"]}, {"id": "t1-hidden", "task": "t1", "step": 9, "title": "Невидимые участки (штриховые)", "body": "<p>Здесь сторону закрывает другой треугольник, поэтому её рисуют штриховой линией.</p><p><b>Как определить:</b> берут <i>конкурирующие точки</i> — две точки на разных треугольниках, которые на проекции совпали (лежат на одной линии взгляда).</p><p>На <b>фронтальной</b> проекции видна та, что ближе к нам, то есть с <b>большим y</b>. На <b>горизонтальной</b> — та, что выше, то есть с <b>большим z</b>.</p><p>Видимость меняется только в точках M и N — там, где один треугольник «протыкает» другой.</p>", "rel": ["t1-MN"], "pre": 1}, {"id": "t1-A", "task": "t1", "step": 1, "title": "Точка A", "body": "<p>Координаты: <b>x = 55, y = 50, z = 50</b> мм.</p><p><b>A₂</b> — фронтальная проекция: откладываем x влево от начала координат, z вверх от оси.</p><p><b>A₁</b> — горизонтальная проекция: тот же x, y откладываем вниз от оси.</p><p>Обе проекции лежат на одной вертикальной линии связи — так всегда для любой точки.</p>", "rel": []}, {"id": "t1-B", "task": "t1", "step": 1, "title": "Точка B", "body": "<p>Координаты: <b>x = 15, y = 25, z = 0</b> мм.</p><p><b>B₂</b> — фронтальная проекция: откладываем x влево от начала координат, z вверх от оси.</p><p><b>B₁</b> — горизонтальная проекция: тот же x, y откладываем вниз от оси.</p><p>Обе проекции лежат на одной вертикальной линии связи — так всегда для любой точки.</p>", "rel": []}, {"id": "t1-C", "task": "t1", "step": 1, "title": "Точка C", "body": "<p>Координаты: <b>x = 95, y = 0, z = 15</b> мм.</p><p><b>C₂</b> — фронтальная проекция: откладываем x влево от начала координат, z вверх от оси.</p><p><b>C₁</b> — горизонтальная проекция: тот же x, y откладываем вниз от оси.</p><p>Обе проекции лежат на одной вертикальной линии связи — так всегда для любой точки.</p>", "rel": []}, {"id": "t1-D", "task": "t1", "step": 1, "title": "Точка D", "body": "<p>Координаты: <b>x = 15, y = 15, z = 35</b> мм.</p><p><b>D₂</b> — фронтальная проекция: откладываем x влево от начала координат, z вверх от оси.</p><p><b>D₁</b> — горизонтальная проекция: тот же x, y откладываем вниз от оси.</p><p>Обе проекции лежат на одной вертикальной линии связи — так всегда для любой точки.</p>", "rel": []}, {"id": "t1-E", "task": "t1", "step": 1, "title": "Точка E", "body": "<p>Координаты: <b>x = 85, y = 35, z = 0</b> мм.</p><p><b>E₂</b> — фронтальная проекция: откладываем x влево от начала координат, z вверх от оси.</p><p><b>E₁</b> — горизонтальная проекция: тот же x, y откладываем вниз от оси.</p><p>Обе проекции лежат на одной вертикальной линии связи — так всегда для любой точки.</p>", "rel": []}, {"id": "t1-F", "task": "t1", "step": 1, "title": "Точка F", "body": "<p>Координаты: <b>x = 50, y = 0, z = 35</b> мм.</p><p><b>F₂</b> — фронтальная проекция: откладываем x влево от начала координат, z вверх от оси.</p><p><b>F₁</b> — горизонтальная проекция: тот же x, y откладываем вниз от оси.</p><p>Обе проекции лежат на одной вертикальной линии связи — так всегда для любой точки.</p>", "rel": []}, {"id": "t1-sigma", "task": "t1", "step": 2, "title": "Плоскость Σ — вспомогательная", "body": "<p>Через сторону <b>DE</b> проводим фронтально-проецирующую плоскость Σ. Она стоит перпендикулярно П₂, поэтому на фронтальной проекции вырождается в прямую — её след Σ₂ просто совпадает с D₂E₂.</p><p>Зачем: точку пересечения прямой DE с плоскостью ABC «в лоб» не видно. А вот линию пересечения двух плоскостей (Σ и ABC) найти легко — и на ней лежит искомая точка.</p>", "rel": ["t1-p12", "t1-M"]}, {"id": "t1-p12", "task": "t1", "step": 3, "title": "Точки 1 и 2", "body": "<p>След Σ₂ пересекает стороны треугольника ABC в точках <b>1₂</b> (на BC) и <b>2₂</b> (на AB).</p><p>Каждую опускаем по вертикальной линии связи на ту же сторону горизонтальной проекции — получаем 1₁ и 2₁. Отрезок 1₁2₁ — горизонтальная проекция линии, по которой Σ режет ABC.</p>", "rel": ["t1-sigma", "t1-M"]}, {"id": "t1-M", "task": "t1", "step": 4, "title": "Точка M — где DE протыкает ABC", "body": "<p>На горизонтальной проекции прямая 1₁2₁ пересекает отрезок D₁E₁ в точке <b>M₁</b>. Поднимаем её по линии связи на D₂E₂ — получаем <b>M₂</b>.</p><p>Координаты: <b>M(48,9; 24,7; 18,0)</b>.</p><p>Это точка, где сторона DE проходит сквозь плоскость ABC. Она — один из концов линии пересечения.</p>", "rel": ["t1-p12", "t1-MN"]}, {"id": "t1-delta", "task": "t1", "step": 5, "title": "Плоскость Δ — вспомогательная", "body": "<p>Через сторону <b>EF</b> проводим фронтально-проецирующую плоскость Δ. Она стоит перпендикулярно П₂, поэтому на фронтальной проекции вырождается в прямую — её след Δ₂ просто совпадает с E₂F₂.</p><p>Зачем: точку пересечения прямой EF с плоскостью ABC «в лоб» не видно. А вот линию пересечения двух плоскостей (Δ и ABC) найти легко — и на ней лежит искомая точка.</p>", "rel": ["t1-p34", "t1-N"]}, {"id": "t1-p34", "task": "t1", "step": 6, "title": "Точки 3 и 4", "body": "<p>След Δ₂ пересекает стороны треугольника ABC в точках <b>3₂</b> (на BC) и <b>4₂</b> (на AB).</p><p>Каждую опускаем по вертикальной линии связи на ту же сторону горизонтальной проекции — получаем 3₁ и 4₁. Отрезок 3₁4₁ — горизонтальная проекция линии, по которой Δ режет ABC.</p>", "rel": ["t1-delta", "t1-N"]}, {"id": "t1-N", "task": "t1", "step": 7, "title": "Точка N — где EF протыкает ABC", "body": "<p>На горизонтальной проекции прямая 3₁4₁ пересекает отрезок E₁F₁ в точке <b>N₁</b>. Поднимаем её по линии связи на E₂F₂ — получаем <b>N₂</b>.</p><p>Координаты: <b>N(66,6; 16,6; 18,4)</b>.</p><p>Это точка, где сторона EF проходит сквозь плоскость ABC. Она — один из концов линии пересечения.</p>", "rel": ["t1-p34", "t1-MN"]}, {"id": "t1-MN", "task": "t1", "step": 8, "title": "MN — линия пересечения треугольников", "body": "<p>Соединяем найденные точки M и N на обеих проекциях. Это <b>ответ первой задачи</b>: по этому отрезку треугольники ABC и DEF врезаются друг в друга.</p><p>Почему хватает двух точек: пересечение двух плоскостей — прямая, а прямую задают две точки.</p><p>Рисуется основной толстой линией — это результат, а не вспомогательное построение.</p>", "rel": ["t1-M", "t1-N", "t1-hidden"]}, {"id": "t2-axis", "task": "t2", "step": 1, "title": "Ось x (ось проекций)", "body": "<p>Линия пересечения фронтальной плоскости проекций П₂ и горизонтальной П₁. Чертёж — это две плоскости, «развёрнутые» в одну.</p><p>Всё, что <b>выше</b> оси, — фронтальные проекции (вид спереди, индекс ₂). Всё, что <b>ниже</b>, — горизонтальные (вид сверху, индекс ₁).</p><p>Расстояние от оси до проекции ₂ — это высота точки z, до проекции ₁ — глубина y.</p>", "rel": []}, {"id": "t2-ABC", "task": "t2", "step": 1, "title": "Плоскость ABC", "body": "<p>Плоскость, до которой ищем расстояние. Задана треугольником A(55; 50; 50), B(15; 25; 0), C(95; 0; 15).</p>", "rel": ["t2-A", "t2-B", "t2-C"]}, {"id": "t2-A", "task": "t2", "step": 1, "title": "Точка A", "body": "<p>Координаты: <b>x = 55, y = 50, z = 50</b> мм.</p><p><b>A₂</b> — фронтальная проекция: откладываем x влево от начала координат, z вверх от оси.</p><p><b>A₁</b> — горизонтальная проекция: тот же x, y откладываем вниз от оси.</p><p>Обе проекции лежат на одной вертикальной линии связи — так всегда для любой точки.</p>", "rel": []}, {"id": "t2-B", "task": "t2", "step": 1, "title": "Точка B", "body": "<p>Координаты: <b>x = 15, y = 25, z = 0</b> мм.</p><p><b>B₂</b> — фронтальная проекция: откладываем x влево от начала координат, z вверх от оси.</p><p><b>B₁</b> — горизонтальная проекция: тот же x, y откладываем вниз от оси.</p><p>Обе проекции лежат на одной вертикальной линии связи — так всегда для любой точки.</p>", "rel": []}, {"id": "t2-C", "task": "t2", "step": 1, "title": "Точка C", "body": "<p>Координаты: <b>x = 95, y = 0, z = 15</b> мм.</p><p><b>C₂</b> — фронтальная проекция: откладываем x влево от начала координат, z вверх от оси.</p><p><b>C₁</b> — горизонтальная проекция: тот же x, y откладываем вниз от оси.</p><p>Обе проекции лежат на одной вертикальной линии связи — так всегда для любой точки.</p>", "rel": []}, {"id": "t2-F", "task": "t2", "step": 1, "title": "Точка F", "body": "<p>Координаты: <b>x = 50, y = 0, z = 35</b> мм.</p><p><b>F₂</b> — фронтальная проекция: откладываем x влево от начала координат, z вверх от оси.</p><p><b>F₁</b> — горизонтальная проекция: тот же x, y откладываем вниз от оси.</p><p>Обе проекции лежат на одной вертикальной линии связи — так всегда для любой точки.</p><p>От этой точки ищем расстояние до плоскости ABC.</p>", "rel": []}, {"id": "t2-h", "task": "t2", "step": 2, "title": "h — горизонталь плоскости", "body": "<p>Прямая, лежащая в плоскости ABC и параллельная горизонтальной плоскости П₁ (все её точки на одной высоте).</p><p><b>Как строим:</b> на фронтальной проекции проводим h₂ <b>горизонтально</b> через C₂ (z = 15). Она пересекает A₂B₂ в точке 1₂. Опускаем 1 на A₁B₁ и соединяем C₁ с 1₁ — это h₁.</p><p><b>Зачем:</b> h₁ показывает горизонталь в натуральном направлении. Перпендикуляр к плоскости на П₁ всегда идёт под прямым углом к h₁.</p>", "rel": ["t2-perp"]}, {"id": "t2-f", "task": "t2", "step": 3, "title": "f — фронталь плоскости", "body": "<p>Прямая в плоскости ABC, параллельная фронтальной плоскости П₂ (все её точки на одной глубине y).</p><p><b>Как строим:</b> на горизонтальной проекции проводим f₁ <b>горизонтально</b> через B₁ (y = 25). Она пересекает A₁C₁ в точке 2₁. Поднимаем 2 на A₂C₂ и соединяем B₂ с 2₂ — это f₂.</p><p><b>Зачем:</b> на П₂ перпендикуляр к плоскости идёт под прямым углом к f₂.</p>", "rel": ["t2-perp"]}, {"id": "t2-perp", "task": "t2", "step": 4, "title": "Перпендикуляр из точки F к плоскости", "body": "<p>Главная теорема: прямая перпендикулярна плоскости, если её проекции перпендикулярны <b>h₁</b> (на горизонтальной) и <b>f₂</b> (на фронтальной).</p><p>Поэтому из F₁ ведём линию под 90° к h₁, а из F₂ — под 90° к f₂.</p><p>Пока это только направление: где перпендикуляр упирается в плоскость, ещё неизвестно. Часть, закрытая треугольником, — штриховая.</p>", "rel": ["t2-h", "t2-f", "t2-gamma"]}, {"id": "t2-gamma", "task": "t2", "step": 5, "title": "Плоскость Γ — вспомогательная", "body": "<p>Через перпендикуляр проводим горизонтально-проецирующую плоскость Γ. На П₁ она вырождается в прямую Γ₁, совпадающую с проекцией перпендикуляра.</p><p>Γ₁ пересекает стороны треугольника в точках <b>3₁</b> (на BC) и <b>4₁</b> (на CA).</p><p>Это тот же приём, что в задаче 1: ищем, где прямая встречает плоскость, через вспомогательную плоскость.</p>", "rel": ["t2-p34", "t2-K"]}, {"id": "t2-p34", "task": "t2", "step": 6, "title": "Точки 3 и 4 на фронтальной проекции", "body": "<p>Поднимаем 3₁ и 4₁ по линиям связи на соответствующие стороны фронтальной проекции — получаем 3₂ и 4₂.</p><p>Отрезок 3₂4₂ — фронтальная проекция линии, по которой плоскость Γ режет треугольник ABC.</p>", "rel": ["t2-gamma", "t2-K"]}, {"id": "t2-K", "task": "t2", "step": 7, "title": "Точка K — основание перпендикуляра", "body": "<p>На фронтальной проекции 3₂4₂ пересекает перпендикуляр в точке <b>K₂</b>. Опускаем по линии связи на горизонтальную проекцию перпендикуляра — <b>K₁</b>.</p><p>Координаты: <b>K(59,3; 19,5; 17,8)</b>. Здесь перпендикуляр из F упирается в плоскость ABC.</p>", "rel": ["t2-p34", "t2-perp", "t2-true"]}, {"id": "t2-dz", "task": "t2", "step": 8, "title": "Δz — разность высот", "body": "<p>На фронтальной проекции проводим горизонтальные линии от F₂ и K₂ и меряем расстояние между ними.</p><p>Δz = z<sub>F</sub> − z<sub>K</sub> = 35,0 − 17,8 = <b>17,2 мм</b>.</p><p>Это второй катет для прямоугольного треугольника, который даст настоящую длину FK.</p>", "rel": ["t2-true"]}, {"id": "t2-true", "task": "t2", "step": 9, "title": "Расстояние |FK| = 27,6 мм", "body": "<p>Проекция F₁K₁ короче настоящего отрезка, потому что FK наклонён. Настоящую длину находим <b>способом прямоугольного треугольника</b>:</p><p>• первый катет — проекция F₁K₁;<br>• второй катет — Δz, отложенный под 90° от F₁ (точка F₀);<br>• гипотенуза K₁F₀ — натуральная длина.</p><p><b>Ответ: 27,6 мм.</b> Это и есть расстояние от точки F до плоскости ABC.</p>", "rel": ["t2-dz", "t2-K"]}, {"id": "t3-axis", "task": "t3", "step": 1, "title": "Ось x (ось проекций)", "body": "<p>Линия пересечения фронтальной плоскости проекций П₂ и горизонтальной П₁. Чертёж — это две плоскости, «развёрнутые» в одну.</p><p>Всё, что <b>выше</b> оси, — фронтальные проекции (вид спереди, индекс ₂). Всё, что <b>ниже</b>, — горизонтальные (вид сверху, индекс ₁).</p><p>Расстояние от оси до проекции ₂ — это высота точки z, до проекции ₁ — глубина y.</p>", "rel": []}, {"id": "t3-ABC", "task": "t3", "step": 1, "title": "Треугольник ABC в проекциях", "body": "<p>Ни одна проекция не показывает треугольник в настоящую величину: плоскость ABC наклонена и к П₁, и к П₂, поэтому обе проекции искажены.</p><p>Чтобы получить настоящий треугольник, найдём истинную длину каждой стороны, а потом построим его по трём сторонам.</p>", "rel": ["t3-nat"]}, {"id": "t3-A", "task": "t3", "step": 1, "title": "Точка A", "body": "<p>Координаты: <b>x = 55, y = 50, z = 50</b> мм.</p><p><b>A₂</b> — фронтальная проекция: откладываем x влево от начала координат, z вверх от оси.</p><p><b>A₁</b> — горизонтальная проекция: тот же x, y откладываем вниз от оси.</p><p>Обе проекции лежат на одной вертикальной линии связи — так всегда для любой точки.</p>", "rel": []}, {"id": "t3-B", "task": "t3", "step": 1, "title": "Точка B", "body": "<p>Координаты: <b>x = 15, y = 25, z = 0</b> мм.</p><p><b>B₂</b> — фронтальная проекция: откладываем x влево от начала координат, z вверх от оси.</p><p><b>B₁</b> — горизонтальная проекция: тот же x, y откладываем вниз от оси.</p><p>Обе проекции лежат на одной вертикальной линии связи — так всегда для любой точки.</p>", "rel": []}, {"id": "t3-C", "task": "t3", "step": 1, "title": "Точка C", "body": "<p>Координаты: <b>x = 95, y = 0, z = 15</b> мм.</p><p><b>C₂</b> — фронтальная проекция: откладываем x влево от начала координат, z вверх от оси.</p><p><b>C₁</b> — горизонтальная проекция: тот же x, y откладываем вниз от оси.</p><p>Обе проекции лежат на одной вертикальной линии связи — так всегда для любой точки.</p>", "rel": []}, {"id": "t3-CA", "task": "t3", "step": 2, "title": "Истинная длина CA = 73,0 мм", "body": "<p>Берём фронтальную проекцию C₂A₂. В точке C₂ ставим перпендикуляр и откладываем на нём <b>Δy = |y<sub>A</sub> − y<sub>C</sub>| = 50 мм</b> — разность глубин концов отрезка (её видно на горизонтальной проекции).</p><p>Гипотенуза A₂C₀ = <b>73,0 мм</b> — настоящая длина стороны CA.</p><p>Почему так: проекция теряет ту координату, вдоль которой мы смотрим. Возвращаем её вторым катетом.</p>", "rel": ["t3-nat"]}, {"id": "t3-BC", "task": "t3", "step": 3, "title": "Истинная длина BC = 85,1 мм", "body": "<p>Берём горизонтальную проекцию B₁C₁. В точке B₁ под прямым углом откладываем <b>Δz = |z<sub>C</sub> − z<sub>B</sub>| = 15 мм</b> — разность высот (видна на фронтальной проекции).</p><p>Гипотенуза C₁B₀ = <b>85,1 мм</b>.</p>", "rel": ["t3-nat"]}, {"id": "t3-AB", "task": "t3", "step": 4, "title": "Истинная длина AB = 68,7 мм", "body": "<p>Так же на горизонтальной проекции A₁B₁: в точке B₁ откладываем <b>Δz = |z<sub>A</sub> − z<sub>B</sub>| = 50 мм</b>.</p><p>Гипотенуза A₁B₀′ = <b>68,7 мм</b>.</p><p>Катет здесь длинный, потому что A намного выше B — сторона AB сильно наклонена.</p>", "rel": ["t3-nat"]}, {"id": "t3-nat", "task": "t3", "step": 5, "title": "Натуральная величина треугольника ABC", "body": "<p>Строим треугольник по трём найденным сторонам, как на уроке геометрии:</p><p>1. Откладываем основание BA = 68,7 мм.<br>2. Из B проводим дугу радиусом BC = 85,1 мм.<br>3. Из A — дугу радиусом CA = 73,0 мм.<br>4. Пересечение дуг — вершина C.</p><p>Это и есть <b>ответ третьей задачи</b>: треугольник без искажений, его углы и площадь настоящие.</p>", "rel": ["t3-CA", "t3-BC", "t3-AB"]}], "pr": [{"e": "t1-axis", "t": "line", "s": "thin", "a": [32.0, 97.0], "b": [142.0, 97.0]}, {"e": "t1-axis", "t": "text", "txt": "x", "h": 3.5, "p": [31.0, 95.0]}, {"e": "t1-ABC", "t": "line", "s": "main", "a": [85.0, 47.0], "b": [97.0, 62.0]}, {"e": "t1-ABC", "t": "line", "s": "main", "a": [97.0, 62.0], "b": [105.0, 72.0]}, {"e": "t1-ABC", "t": "line", "s": "main", "a": [105.0, 72.0], "b": [125.0, 97.0]}, {"e": "t1-ABC", "t": "line", "s": "main", "a": [125.0, 97.0], "b": [74.091, 87.455]}, {"e": "t1-hidden", "t": "line", "s": "hidden", "a": [74.091, 87.455], "b": [66.053, 85.947]}, {"e": "t1-ABC", "t": "line", "s": "main", "a": [66.053, 85.947], "b": [45.0, 82.0]}, {"e": "t1-ABC", "t": "line", "s": "main", "a": [45.0, 82.0], "b": [85.0, 47.0]}, {"e": "t1-DEF", "t": "line", "s": "main", "a": [125.0, 62.0], "b": [105.0, 72.0]}, {"e": "t1-hidden", "t": "line", "s": "hidden", "a": [105.0, 72.0], "b": [91.068, 78.966]}, {"e": "t1-DEF", "t": "line", "s": "main", "a": [91.068, 78.966], "b": [74.091, 87.455]}, {"e": "t1-DEF", "t": "line", "s": "main", "a": [74.091, 87.455], "b": [55.0, 97.0]}, {"e": "t1-DEF", "t": "line", "s": "main", "a": [55.0, 97.0], "b": [66.053, 85.947]}, {"e": "t1-DEF", "t": "line", "s": "main", "a": [66.053, 85.947], "b": [73.411, 78.589]}, {"e": "t1-hidden", "t": "line", "s": "hidden", "a": [73.411, 78.589], "b": [90.0, 62.0]}, {"e": "t1-hidden", "t": "line", "s": "hidden", "a": [90.0, 62.0], "b": [97.0, 62.0]}, {"e": "t1-DEF", "t": "line", "s": "main", "a": [97.0, 62.0], "b": [125.0, 62.0]}, {"e": "t1-ABC", "t": "line", "s": "main", "a": [85.0, 147.0], "b": [125.0, 122.0]}, {"e": "t1-ABC", "t": "line", "s": "main", "a": [125.0, 122.0], "b": [108.284, 116.776]}, {"e": "t1-hidden", "t": "line", "s": "hidden", "a": [108.284, 116.776], "b": [79.286, 107.714]}, {"e": "t1-ABC", "t": "line", "s": "main", "a": [79.286, 107.714], "b": [45.0, 97.0]}, {"e": "t1-ABC", "t": "line", "s": "main", "a": [45.0, 97.0], "b": [65.0, 122.0]}, {"e": "t1-ABC", "t": "line", "s": "main", "a": [65.0, 122.0], "b": [69.651, 127.814]}, {"e": "t1-ABC", "t": "line", "s": "main", "a": [69.651, 127.814], "b": [85.0, 147.0]}, {"e": "t1-DEF", "t": "line", "s": "main", "a": [125.0, 112.0], "b": [108.284, 116.776]}, {"e": "t1-DEF", "t": "line", "s": "main", "a": [108.284, 116.776], "b": [91.068, 121.695]}, {"e": "t1-hidden", "t": "line", "s": "hidden", "a": [91.068, 121.695], "b": [69.651, 127.814]}, {"e": "t1-DEF", "t": "line", "s": "main", "a": [69.651, 127.814], "b": [55.0, 132.0]}, {"e": "t1-DEF", "t": "line", "s": "main", "a": [55.0, 132.0], "b": [65.0, 122.0]}, {"e": "t1-hidden", "t": "line", "s": "hidden", "a": [65.0, 122.0], "b": [73.411, 113.589]}, {"e": "t1-DEF", "t": "line", "s": "main", "a": [73.411, 113.589], "b": [79.286, 107.714]}, {"e": "t1-DEF", "t": "line", "s": "main", "a": [79.286, 107.714], "b": [90.0, 97.0]}, {"e": "t1-DEF", "t": "line", "s": "main", "a": [90.0, 97.0], "b": [125.0, 112.0]}, {"e": "t1-A", "t": "line", "s": "thin", "a": [85.0, 47.0], "b": [85.0, 147.0]}, {"e": "t1-A", "t": "label", "txt": "A", "sub": "2", "p": [87.0, 46.0]}, {"e": "t1-A", "t": "label", "txt": "A", "sub": "1", "p": [87.0, 153.0]}, {"e": "t1-B", "t": "line", "s": "thin", "a": [125.0, 97.0], "b": [125.0, 122.0]}, {"e": "t1-B", "t": "label", "txt": "B", "sub": "2", "p": [118.0, 99.0]}, {"e": "t1-B", "t": "label", "txt": "B", "sub": "1", "p": [118.0, 125.0]}, {"e": "t1-C", "t": "line", "s": "thin", "a": [45.0, 82.0], "b": [45.0, 97.0]}, {"e": "t1-C", "t": "label", "txt": "C", "sub": "2", "p": [38.0, 81.0]}, {"e": "t1-C", "t": "label", "txt": "C", "sub": "1", "p": [38.0, 98.0]}, {"e": "t1-D", "t": "line", "s": "thin", "a": [125.0, 62.0], "b": [125.0, 112.0]}, {"e": "t1-D", "t": "label", "txt": "D", "sub": "2", "p": [118.0, 62.0]}, {"e": "t1-D", "t": "label", "txt": "D", "sub": "1", "p": [118.0, 111.0]}, {"e": "t1-E", "t": "line", "s": "thin", "a": [55.0, 97.0], "b": [55.0, 132.0]}, {"e": "t1-E", "t": "label", "txt": "E", "sub": "2", "p": [57.0, 103.0]}, {"e": "t1-E", "t": "label", "txt": "E", "sub": "1", "p": [57.0, 137.0]}, {"e": "t1-F", "t": "line", "s": "thin", "a": [90.0, 62.0], "b": [90.0, 97.0]}, {"e": "t1-F", "t": "label", "txt": "F", "sub": "2", "p": [93.0, 61.0]}, {"e": "t1-F", "t": "label", "txt": "F", "sub": "1", "p": [92.0, 96.0]}, {"e": "t1-sigma", "t": "line", "s": "thin", "a": [133.944, 57.528], "b": [44.267, 102.367]}, {"e": "t1-sigma", "t": "label", "txt": "Σ", "sub": "2", "p": [134.944, 57.528]}, {"e": "t1-p12", "t": "line", "s": "thin", "a": [74.091, 87.455], "b": [74.091, 106.091]}, {"e": "t1-p12", "t": "dot", "p": [74.091, 87.455]}, {"e": "t1-p12", "t": "dot", "p": [74.091, 106.091]}, {"e": "t1-p12", "t": "label", "txt": "1", "sub": "2", "p": [70.091, 85.455]}, {"e": "t1-p12", "t": "label", "txt": "1", "sub": "1", "p": [70.091, 112.091]}, {"e": "t1-p12", "t": "line", "s": "thin", "a": [105.0, 72.0], "b": [105.0, 134.5]}, {"e": "t1-p12", "t": "dot", "p": [105.0, 72.0]}, {"e": "t1-p12", "t": "dot", "p": [105.0, 134.5]}, {"e": "t1-p12", "t": "label", "txt": "2", "sub": "2", "p": [101.0, 70.0]}, {"e": "t1-p12", "t": "label", "txt": "2", "sub": "1", "p": [101.0, 140.5]}, {"e": "t1-p12", "t": "line", "s": "thin", "a": [74.091, 106.091], "b": [105.0, 134.5]}, {"e": "t1-M", "t": "line", "s": "thin", "a": [91.068, 78.966], "b": [91.068, 121.695]}, {"e": "t1-M", "t": "label", "txt": "M", "sub": "2", "p": [88.068, 76.466]}, {"e": "t1-M", "t": "label", "txt": "M", "sub": "1", "p": [89.068, 128.695]}, {"e": "t1-delta", "t": "line", "s": "thin", "a": [47.929, 104.071], "b": [102.374, 49.626]}, {"e": "t1-delta", "t": "label", "txt": "Δ", "sub": "2", "p": [103.374, 49.626]}, {"e": "t1-p34", "t": "line", "s": "thin", "a": [66.053, 85.947], "b": [66.053, 103.579]}, {"e": "t1-p34", "t": "dot", "p": [66.053, 85.947]}, {"e": "t1-p34", "t": "dot", "p": [66.053, 103.579]}, {"e": "t1-p34", "t": "label", "txt": "3", "sub": "2", "p": [62.053, 83.947]}, {"e": "t1-p34", "t": "label", "txt": "3", "sub": "1", "p": [62.053, 109.579]}, {"e": "t1-p34", "t": "line", "s": "thin", "a": [93.889, 58.111], "b": [93.889, 141.444]}, {"e": "t1-p34", "t": "dot", "p": [93.889, 58.111]}, {"e": "t1-p34", "t": "dot", "p": [93.889, 141.444]}, {"e": "t1-p34", "t": "label", "txt": "4", "sub": "2", "p": [83.889, 59.111]}, {"e": "t1-p34", "t": "label", "txt": "4", "sub": "1", "p": [89.889, 147.444]}, {"e": "t1-p34", "t": "line", "s": "thin", "a": [66.053, 103.579], "b": [93.889, 141.444]}, {"e": "t1-N", "t": "line", "s": "thin", "a": [73.411, 78.589], "b": [73.411, 113.589]}, {"e": "t1-N", "t": "label", "txt": "N", "sub": "2", "p": [70.411, 76.089]}, {"e": "t1-N", "t": "label", "txt": "N", "sub": "1", "p": [71.411, 120.589]}, {"e": "t1-MN", "t": "line", "s": "main", "a": [91.068, 78.966], "b": [73.411, 78.589]}, {"e": "t1-MN", "t": "line", "s": "main", "a": [91.068, 121.695], "b": [73.411, 113.589]}, {"e": "t2-axis", "t": "line", "s": "thin", "a": [165.0, 97.0], "b": [285.0, 97.0]}, {"e": "t2-axis", "t": "text", "txt": "x", "h": 3.5, "p": [164.0, 95.0]}, {"e": "t2-ABC", "t": "line", "s": "main", "a": [218.0, 47.0], "b": [258.0, 97.0]}, {"e": "t2-ABC", "t": "line", "s": "main", "a": [218.0, 147.0], "b": [258.0, 122.0]}, {"e": "t2-ABC", "t": "line", "s": "main", "a": [258.0, 97.0], "b": [178.0, 82.0]}, {"e": "t2-ABC", "t": "line", "s": "main", "a": [258.0, 122.0], "b": [178.0, 97.0]}, {"e": "t2-ABC", "t": "line", "s": "main", "a": [178.0, 82.0], "b": [218.0, 47.0]}, {"e": "t2-ABC", "t": "line", "s": "main", "a": [178.0, 97.0], "b": [218.0, 147.0]}, {"e": "t2-A", "t": "line", "s": "thin", "a": [218.0, 47.0], "b": [218.0, 147.0]}, {"e": "t2-A", "t": "label", "txt": "A", "sub": "2", "p": [220.0, 52.0]}, {"e": "t2-A", "t": "label", "txt": "A", "sub": "1", "p": [220.0, 152.0]}, {"e": "t2-B", "t": "line", "s": "thin", "a": [258.0, 97.0], "b": [258.0, 122.0]}, {"e": "t2-B", "t": "label", "txt": "B", "sub": "2", "p": [251.0, 99.0]}, {"e": "t2-B", "t": "label", "txt": "B", "sub": "1", "p": [252.0, 128.0]}, {"e": "t2-C", "t": "line", "s": "thin", "a": [178.0, 82.0], "b": [178.0, 97.0]}, {"e": "t2-C", "t": "label", "txt": "C", "sub": "2", "p": [175.0, 79.5]}, {"e": "t2-C", "t": "label", "txt": "C", "sub": "1", "p": [171.0, 96.0]}, {"e": "t2-F", "t": "line", "s": "thin", "a": [223.0, 62.0], "b": [223.0, 97.0]}, {"e": "t2-F", "t": "label", "txt": "F", "sub": "2", "p": [216.0, 61.0]}, {"e": "t2-F", "t": "label", "txt": "F", "sub": "1", "p": [216.0, 99.0]}, {"e": "t2-h", "t": "line", "s": "thin", "a": [170.0, 82.0], "b": [256.0, 82.0]}, {"e": "t2-h", "t": "label", "txt": "h", "sub": "2", "p": [257.0, 81.0]}, {"e": "t2-h", "t": "line", "s": "thin", "a": [170.782, 93.55], "b": [255.022, 133.812]}, {"e": "t2-h", "t": "label", "txt": "h", "sub": "1", "p": [254.022, 139.812]}, {"e": "t2-h", "t": "line", "s": "thin", "a": [246.0, 82.0], "b": [246.0, 129.5]}, {"e": "t2-h", "t": "dot", "p": [246.0, 82.0]}, {"e": "t2-h", "t": "dot", "p": [246.0, 129.5]}, {"e": "t2-h", "t": "label", "txt": "1", "sub": "2", "p": [241.0, 81.0]}, {"e": "t2-h", "t": "label", "txt": "1", "sub": "1", "p": [244.0, 136.5]}, {"e": "t2-f", "t": "line", "s": "thin", "a": [268.0, 122.0], "b": [188.0, 122.0]}, {"e": "t2-f", "t": "label", "txt": "f", "sub": "1", "p": [265.0, 121.0]}, {"e": "t2-f", "t": "line", "s": "thin", "a": [266.793, 101.763], "b": [189.207, 59.737]}, {"e": "t2-f", "t": "label", "txt": "f", "sub": "2", "p": [262.793, 100.763]}, {"e": "t2-f", "t": "line", "s": "thin", "a": [198.0, 64.5], "b": [198.0, 122.0]}, {"e": "t2-f", "t": "dot", "p": [198.0, 64.5]}, {"e": "t2-f", "t": "dot", "p": [198.0, 122.0]}, {"e": "t2-f", "t": "label", "txt": "2", "sub": "2", "p": [199.0, 63.5]}, {"e": "t2-f", "t": "label", "txt": "2", "sub": "1", "p": [193.0, 121.0]}, {"e": "t2-perp", "t": "line", "s": "hidden", "a": [223.0, 62.0], "b": [213.676, 79.214]}, {"e": "t2-perp", "t": "line", "s": "main", "a": [223.0, 97.0], "b": [217.152, 109.235]}, {"e": "t2-perp", "t": "line", "s": "main", "a": [217.152, 109.235], "b": [213.676, 116.509]}, {"e": "t2-gamma", "t": "line", "s": "thin", "a": [226.45, 89.782], "b": [201.858, 141.235]}, {"e": "t2-gamma", "t": "label", "txt": "Γ", "sub": "1", "p": [202.858, 144.235]}, {"e": "t2-gamma", "t": "dot", "p": [217.152, 109.235]}, {"e": "t2-gamma", "t": "label", "txt": "3", "sub": "1", "p": [220.152, 110.235]}, {"e": "t2-gamma", "t": "dot", "p": [206.17, 132.213]}, {"e": "t2-gamma", "t": "label", "txt": "4", "sub": "1", "p": [207.67, 137.713]}, {"e": "t2-p34", "t": "line", "s": "thin", "a": [217.152, 109.235], "b": [217.152, 89.341]}, {"e": "t2-p34", "t": "dot", "p": [217.152, 89.341]}, {"e": "t2-p34", "t": "label", "txt": "3", "sub": "2", "p": [218.652, 88.341]}, {"e": "t2-p34", "t": "line", "s": "thin", "a": [206.17, 132.213], "b": [206.17, 57.351]}, {"e": "t2-p34", "t": "dot", "p": [206.17, 57.351]}, {"e": "t2-p34", "t": "label", "txt": "4", "sub": "2", "p": [207.67, 56.351]}, {"e": "t2-p34", "t": "line", "s": "thin", "a": [217.152, 89.341], "b": [206.17, 57.351]}, {"e": "t2-K", "t": "line", "s": "thin", "a": [213.676, 79.214], "b": [213.676, 116.509]}, {"e": "t2-K", "t": "dot", "p": [213.676, 116.509]}, {"e": "t2-K", "t": "dot", "p": [213.676, 79.214]}, {"e": "t2-K", "t": "label", "txt": "K", "sub": "2", "p": [206.676, 80.214]}, {"e": "t2-K", "t": "label", "txt": "K", "sub": "1", "p": [206.676, 120.509]}, {"e": "t2-dz", "t": "line", "s": "thin", "a": [223.0, 62.0], "b": [240.0, 62.0]}, {"e": "t2-dz", "t": "line", "s": "thin", "a": [213.676, 79.214], "b": [240.0, 79.214]}, {"e": "t2-dz", "t": "line", "s": "thin", "a": [237.0, 62.0], "b": [237.0, 79.214]}, {"e": "t2-dz", "t": "text", "txt": "Δz", "h": 3.5, "p": [239.0, 72.107]}, {"e": "t2-true", "t": "line", "s": "thin", "a": [223.0, 97.0], "b": [238.531, 104.423]}, {"e": "t2-true", "t": "line", "s": "main", "a": [213.676, 116.509], "b": [238.531, 104.423]}, {"e": "t2-true", "t": "label", "txt": "F", "sub": "0", "p": [240.031, 108.423]}, {"e": "t2-true", "t": "text", "txt": "Δz", "h": 3.5, "p": [232.766, 102.712]}, {"e": "t2-true", "t": "line", "s": "thin", "a": [221.706, 99.707], "b": [224.413, 101.0]}, {"e": "t2-true", "t": "line", "s": "thin", "a": [225.707, 98.294], "b": [224.413, 101.0]}, {"e": "t2-true", "t": "text", "txt": "|FK| = 27,6 мм", "h": 3.5, "p": [203.0, 169.0]}, {"e": "t3-axis", "t": "line", "s": "thin", "a": [287.0, 97.0], "b": [395.0, 97.0]}, {"e": "t3-axis", "t": "text", "txt": "x", "h": 3.5, "p": [286.0, 95.0]}, {"e": "t3-ABC", "t": "line", "s": "main", "a": [337.0, 47.0], "b": [377.0, 97.0]}, {"e": "t3-ABC", "t": "line", "s": "main", "a": [337.0, 147.0], "b": [377.0, 122.0]}, {"e": "t3-ABC", "t": "line", "s": "main", "a": [377.0, 97.0], "b": [297.0, 82.0]}, {"e": "t3-ABC", "t": "line", "s": "main", "a": [377.0, 122.0], "b": [297.0, 97.0]}, {"e": "t3-ABC", "t": "line", "s": "main", "a": [297.0, 82.0], "b": [337.0, 47.0]}, {"e": "t3-ABC", "t": "line", "s": "main", "a": [297.0, 97.0], "b": [337.0, 147.0]}, {"e": "t3-A", "t": "line", "s": "thin", "a": [337.0, 47.0], "b": [337.0, 147.0]}, {"e": "t3-A", "t": "label", "txt": "A", "sub": "2", "p": [339.0, 46.0]}, {"e": "t3-A", "t": "label", "txt": "A", "sub": "1", "p": [339.0, 153.0]}, {"e": "t3-B", "t": "line", "s": "thin", "a": [377.0, 97.0], "b": [377.0, 122.0]}, {"e": "t3-B", "t": "label", "txt": "B", "sub": "2", "p": [379.0, 96.0]}, {"e": "t3-B", "t": "label", "txt": "B", "sub": "1", "p": [379.0, 121.0]}, {"e": "t3-C", "t": "line", "s": "thin", "a": [297.0, 82.0], "b": [297.0, 97.0]}, {"e": "t3-C", "t": "label", "txt": "C", "sub": "2", "p": [290.0, 81.0]}, {"e": "t3-C", "t": "label", "txt": "C", "sub": "1", "p": [290.0, 96.0]}, {"e": "t3-CA", "t": "line", "s": "thin", "a": [297.0, 82.0], "b": [264.075, 44.371]}, {"e": "t3-CA", "t": "line", "s": "main", "a": [337.0, 47.0], "b": [264.075, 44.371]}, {"e": "t3-CA", "t": "label", "txt": "C", "sub": "0", "p": [257.075, 44.371]}, {"e": "t3-CA", "t": "text", "txt": "Δy", "h": 3.5, "p": [283.537, 63.186]}, {"e": "t3-CA", "t": "line", "s": "thin", "a": [299.258, 80.024], "b": [297.282, 77.767]}, {"e": "t3-CA", "t": "line", "s": "thin", "a": [295.024, 79.742], "b": [297.282, 77.767]}, {"e": "t3-BC", "t": "line", "s": "thin", "a": [377.0, 122.0], "b": [372.526, 136.317]}, {"e": "t3-BC", "t": "line", "s": "main", "a": [297.0, 97.0], "b": [372.526, 136.317]}, {"e": "t3-BC", "t": "label", "txt": "B", "sub": "0", "p": [369.526, 142.317]}, {"e": "t3-BC", "t": "text", "txt": "Δz", "h": 3.5, "p": [365.763, 131.159]}, {"e": "t3-BC", "t": "line", "s": "thin", "a": [374.137, 121.105], "b": [373.242, 123.969]}, {"e": "t3-BC", "t": "line", "s": "thin", "a": [376.105, 124.863], "b": [373.242, 123.969]}, {"e": "t3-AB", "t": "line", "s": "thin", "a": [377.0, 122.0], "b": [403.5, 164.4]}, {"e": "t3-AB", "t": "line", "s": "main", "a": [337.0, 147.0], "b": [403.5, 164.4]}, {"e": "t3-AB", "t": "label", "txt": "B", "sub": "0'", "p": [395.5, 164.4]}, {"e": "t3-AB", "t": "text", "txt": "Δz", "h": 3.5, "p": [392.25, 143.2]}, {"e": "t3-AB", "t": "line", "s": "thin", "a": [374.456, 123.59], "b": [376.046, 126.134]}, {"e": "t3-AB", "t": "line", "s": "thin", "a": [378.59, 124.544], "b": [376.046, 126.134]}, {"e": "t3-nat", "t": "line", "s": "main", "a": [226.0, 225.0], "b": [294.739, 225.0]}, {"e": "t3-nat", "t": "line", "s": "main", "a": [294.739, 225.0], "b": [274.372, 154.927]}, {"e": "t3-nat", "t": "line", "s": "main", "a": [274.372, 154.927], "b": [226.0, 225.0]}, {"e": "t3-nat", "t": "arc", "a": [283.653, 162.341], "b": [264.149, 148.877], "r": 85.147}, {"e": "t3-nat", "t": "arc", "a": [284.322, 152.775], "b": [264.818, 158.444], "r": 72.973}, {"e": "t3-nat", "t": "label", "txt": "A", "sub": "", "p": [296.739, 227.0]}, {"e": "t3-nat", "t": "label", "txt": "B", "sub": "", "p": [220.0, 227.0]}, {"e": "t3-nat", "t": "label", "txt": "C", "sub": "", "p": [272.872, 151.927]}, {"e": "t3-nat", "t": "text", "txt": "Натуральная величина ΔABC", "h": 3.5, "p": [220.0, 234.0]}]};
+const TASKS = {
+  t1:{name:"Задача 1. Пересечение плоскостей", intro:{title:"Исходные данные", body:"<p>Даны два треугольника: <b>ABC</b> и <b>DEF</b>. Каждая вершина показана двумя проекциями, соединёнными линией связи.</p><p><b>Цель:</b> найти линию, по которой треугольники пересекаются, и показать, где какой из них виден.</p><p><b>План:</b> найти две точки, где стороны DE и EF протыкают ABC, через вспомогательные плоскости Σ и Δ. Соединить их и определить видимость.</p>"}},
+  t2:{name:"Задача 2. Расстояние от точки до плоскости", intro:{title:"Исходные данные", body:"<p>Даны плоскость <b>ABC</b> и точка <b>F</b>. Расстояние — это длина перпендикуляра из F на плоскость.</p><p><b>План:</b> построить в плоскости горизонталь h и фронталь f → провести перпендикуляр → найти точку K, где он встречает плоскость → найти настоящую длину FK.</p>"}},
+  t3:{name:"Задача 3. Натуральная величина треугольника", intro:{title:"Исходные данные", body:"<p>Дан треугольник <b>ABC</b>. На обеих проекциях он искажён, потому что наклонён к плоскостям проекций.</p><p><b>План:</b> найти истинную длину каждой стороны способом прямоугольного треугольника → построить треугольник по трём сторонам.</p>"}}
+};
+const NS="http://www.w3.org/2000/svg";
+const svg=document.getElementById('dw');
+const EL={}; DATA.el.forEach(e=>EL[e.id]=e);
+const groups={};
+// frame for sheet view
+const frame=document.createElementNS(NS,'g'); frame.id='frame';
+frame.innerHTML='<rect class="frame" x="20" y="5" width="395" height="287"/><path class="frame" d="M230 292 V237 H415"/>';
+svg.appendChild(frame);
+DATA.el.forEach(e=>{const g=document.createElementNS(NS,'g');g.setAttribute('class','e');g.dataset.e=e.id;g.dataset.task=e.id.slice(0,2);groups[e.id]=g;svg.appendChild(g);});
+const bbox={t1:[1e9,1e9,-1e9,-1e9],t2:[1e9,1e9,-1e9,-1e9],t3:[1e9,1e9,-1e9,-1e9]};
+function grow(t,x,y){const b=bbox[t];b[0]=Math.min(b[0],x);b[1]=Math.min(b[1],y);b[2]=Math.max(b[2],x);b[3]=Math.max(b[3],y);}
+DATA.pr.forEach(p=>{
+  const g=groups[p.e], t=p.e.slice(0,2);
+  if(p.t==='line'){
+    const d=`M${p.a[0]} ${p.a[1]}L${p.b[0]} ${p.b[1]}`;
+    const l=document.createElementNS(NS,'path');l.setAttribute('d',d);l.setAttribute('class','ln '+p.s);g.appendChild(l);
+    const h=document.createElementNS(NS,'path');h.setAttribute('d',d);h.setAttribute('class','hit');g.appendChild(h);
+    grow(t,p.a[0],p.a[1]);grow(t,p.b[0],p.b[1]);
+  }else if(p.t==='arc'){
+    const d=`M${p.a[0]} ${p.a[1]}A${p.r} ${p.r} 0 0 1 ${p.b[0]} ${p.b[1]}`;
+    const l=document.createElementNS(NS,'path');l.setAttribute('d',d);l.setAttribute('class','ln thin');g.appendChild(l);
+    const h=document.createElementNS(NS,'path');h.setAttribute('d',d);h.setAttribute('class','hit');g.appendChild(h);
+    grow(t,p.a[0],p.a[1]);grow(t,p.b[0],p.b[1]);
+  }else if(p.t==='dot'){
+    const c=document.createElementNS(NS,'circle');c.setAttribute('cx',p.p[0]);c.setAttribute('cy',p.p[1]);c.setAttribute('r',.7);c.setAttribute('class','dot');g.appendChild(c);
+  }else{
+    const isLab=p.t==='label', h=isLab?5:p.h;
+    const w=isLab?(p.txt.length*3.2+(p.sub?p.sub.length*2.4+.6:0)):p.txt.length*h*.5;
+    const r=document.createElementNS(NS,'rect');r.setAttribute('x',p.p[0]-1);r.setAttribute('y',p.p[1]-h-.5);r.setAttribute('width',w+2);r.setAttribute('height',h+2.5);r.setAttribute('class','lbh');g.appendChild(r);
+    const tx=document.createElementNS(NS,'text');tx.setAttribute('x',p.p[0]);tx.setAttribute('y',p.p[1]);tx.setAttribute('class','lb');tx.setAttribute('font-size',h);tx.textContent=p.txt;g.appendChild(tx);
+    if(isLab&&p.sub){const s=document.createElementNS(NS,'text');s.setAttribute('x',p.p[0]+p.txt.length*3.1+.3);s.setAttribute('y',p.p[1]+1.5);s.setAttribute('class','lb');s.setAttribute('font-size',3.5);s.textContent=p.sub;g.appendChild(s);}
+    grow(t,p.p[0],p.p[1]-h);grow(t,p.p[0]+w,p.p[1]+1.5);
+  }
+});
+const VB={sheet:[15,0,405,297]};
+for(const t in bbox){const b=bbox[t],pad=7;VB[t]=[b[0]-pad,b[1]-pad,b[2]-b[0]+2*pad,b[3]-b[1]+2*pad];}
+
+// state
+const S={view:'sheet',mode:'step',step:{t1:1,t2:1,t3:1},sel:null};
+const maxStep=t=>Math.max(...DATA.el.filter(e=>e.id.startsWith(t)).map(e=>e.step));
+const $=id=>document.getElementById(id);
+
+function render(){
+  const v=S.view;
+  document.querySelectorAll('nav.tabs button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.view===v));
+  svg.setAttribute('viewBox',VB[v].join(' '));
+  frame.style.display=v==='sheet'?'':'none';
+  const stepMode=v!=='sheet'&&S.mode==='step';
+  const cur=v==='sheet'?99:(stepMode?S.step[v]:99);
+  const rel=new Set(S.sel?EL[S.sel].rel:[]);
+  // also elements that reference sel
+  if(S.sel) DATA.el.forEach(e=>{if(e.rel.includes(S.sel))rel.add(e.id)});
+  DATA.el.forEach(e=>{
+    const g=groups[e.id], t=e.id.slice(0,2);
+    let off=v!=='sheet'&&t!==v;
+    let pend=false;
+    if(!off&&stepMode&&e.step>cur){ if(e.pre) pend=true; else off=true; }
+    g.classList.toggle('off',off);
+    g.classList.toggle('pend',pend);
+    g.classList.toggle('sel',S.sel===e.id);
+    g.classList.toggle('rel',!!S.sel&&rel.has(e.id)&&S.sel!==e.id);
+    g.classList.toggle('now',!S.sel&&stepMode&&e.step===cur&&cur>1);
+  });
+  svg.classList.toggle('has-sel',!!S.sel);
+  // step card
+  const sc=$('stepcard');
+  if(v==='sheet'){
+    $('taskname').textContent='Весь лист';
+    $('m-step').parentElement.hidden=true; $('prev').parentElement.hidden=true; $('barfill').parentElement.hidden=true;
+    $('steptitle').textContent='Три задачи на одном листе';
+    $('stepbody').innerHTML='<p>Слева направо: <b>1</b> — пересечение двух треугольников, <b>2</b> — расстояние от точки до плоскости, <b>3</b> — натуральная величина треугольника.</p><p>Откройте задачу вкладкой сверху, чтобы пройти построение по шагам, или нажмите на любой элемент прямо здесь.</p>';
+  }else{
+    const T=TASKS[v], n=maxStep(v);
+    $('taskname').textContent=T.name;
+    $('m-step').parentElement.hidden=false; $('barfill').parentElement.hidden=!stepMode; $('prev').parentElement.hidden=!stepMode;
+    $('m-step').setAttribute('aria-pressed',stepMode); $('m-all').setAttribute('aria-pressed',!stepMode);
+    if(stepMode){
+      const s=S.step[v];
+      $('stepno').textContent=`Шаг ${s} из ${n}`;
+      $('barfill').style.width=(s/n*100)+'%';
+      $('prev').disabled=s<=1; $('next').disabled=s>=n;
+      if(s===1){$('steptitle').textContent=T.intro.title;$('stepbody').innerHTML=T.intro.body;}
+      else{const es=DATA.el.filter(e=>e.id.startsWith(v)&&e.step===s);$('steptitle').textContent=es.map(e=>e.title).join(' · ');$('stepbody').innerHTML=es.map(e=>e.body).join('');}
+    }else{
+      $('steptitle').textContent='Всё построение';
+      $('stepbody').innerHTML='<p>Показан готовый результат. Нажимайте на элементы, чтобы узнать, как каждый получен. Вернуться к пошаговому разбору — кнопка «Пошагово».</p>';
+    }
+  }
+  // info card
+  if(S.sel){
+    const e=EL[S.sel];
+    $('infotitle').textContent=e.title; $('infotitle').classList.remove('empty');
+    $('infobody').innerHTML=e.body;
+    const ch=$('chips'); ch.innerHTML='';
+    [...rel].filter(id=>id!==S.sel&&EL[id]).forEach(id=>{const b=document.createElement('button');b.className='chip';b.textContent=EL[id].title;b.onclick=()=>select(id);ch.appendChild(b);});
+  }else{
+    $('infotitle').textContent='Ничего не выбрано'; $('infotitle').classList.add('empty');
+    $('infobody').innerHTML='<p class="hint">Нажмите на линию, точку или подпись на чертеже. Связанные элементы подсветятся оранжевым — по ним можно перейти дальше.</p>';
+    $('chips').innerHTML='';
+  }
+  $('tip').hidden=!!S.sel;
+}
+function select(id){
+  S.sel=id;
+  const t=id.slice(0,2);
+  if(S.view!=='sheet'&&S.view!==t){S.view=t;}
+  if(S.view!=='sheet'&&S.mode==='step'&&EL[id].step>S.step[t]) S.step[t]=EL[id].step;
+  render();
+  if(window.innerWidth<=920) $('infocard').scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+function setView(v){S.view=v;S.sel=null;try{history.replaceState(null,'','#'+(v==='sheet'?'sheet':'task'+v[1]))}catch(e){};render();}
+svg.addEventListener('click',ev=>{const g=ev.target.closest('g.e');if(g)select(g.dataset.e);else{S.sel=null;render();}});
+svg.addEventListener('pointerover',ev=>{const g=ev.target.closest('g.e');svg.querySelectorAll('g.hov').forEach(x=>x!==g&&x.classList.remove('hov'));if(g)g.classList.add('hov');});
+svg.addEventListener('pointerleave',()=>svg.querySelectorAll('g.hov').forEach(x=>x.classList.remove('hov')));
+document.querySelectorAll('nav.tabs button').forEach(b=>b.onclick=()=>setView(b.dataset.view));
+$('m-step').onclick=()=>{S.mode='step';render();};
+$('m-all').onclick=()=>{S.mode='all';render();};
+$('prev').onclick=()=>{const v=S.view;if(S.step[v]>1){S.step[v]--;S.sel=null;render();}};
+$('next').onclick=()=>{const v=S.view;if(S.step[v]<maxStep(v)){S.step[v]++;S.sel=null;render();}};
+document.addEventListener('keydown',ev=>{
+  if(ev.key==='Escape'){S.sel=null;render();}
+  if(S.view==='sheet'||S.mode!=='step')return;
+  if(ev.key==='ArrowRight')$('next').click();
+  if(ev.key==='ArrowLeft')$('prev').click();
+});
+function fromHash(){const h=location.hash.slice(1);const m={sheet:'sheet',task1:'t1',task2:'t2',task3:'t3'};S.view=m[h]||'sheet';S.sel=null;render();}
+window.addEventListener('hashchange',fromHash);
+fromHash();
+</script>
+
+</body>
+</html>
